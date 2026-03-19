@@ -10,50 +10,44 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.taream6l2.Adapter.PokemonAdapter
 import com.example.taream6l2.Api.PokeApiService
 import com.example.taream6l2.Model.PokemonResponse
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
-    //Referencias visuales: Guardamos referencias al RecyclerView y al Adapter
     private lateinit var recyclerViewPokemon: RecyclerView
     private lateinit var pokemonAdapter: PokemonAdapter
     private lateinit var editTextPokemonName: EditText
     private lateinit var buttonSearch: Button
     private lateinit var apiService: PokeApiService
+    private lateinit var repository: PokemonRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        //Enlazar con el XML: Le decimos a Android qué layout usar y obtenemos el RecyclerView del XML
         setContentView(R.layout.activity_main)
 
         recyclerViewPokemon = findViewById(R.id.recyclerViewPokemon)
         editTextPokemonName = findViewById(R.id.editTextPokemonName)
         buttonSearch = findViewById(R.id.buttonSearch)
 
-        //Preparar RecyclerView
-        pokemonAdapter = PokemonAdapter() //Coneecta el RecyclerView con los datos
-
-        //LinearLayoutManager(this) hace que los items se muestren en una columna (vertical)
+        pokemonAdapter = PokemonAdapter()
         recyclerViewPokemon.layoutManager = LinearLayoutManager(this)
         recyclerViewPokemon.adapter = pokemonAdapter
 
-        //Crear Retrofit
-        //El conversor Gson que transforma el JSON en objetos Kotlin
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://pokeapi.co/api/v2/") //Configura la URL base
+            .baseUrl("https://pokeapi.co/api/v2/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
-        //Crear servicio de API
-        //Retrofit crea una implementación real de la interfaz que se define
         apiService = retrofit.create(PokeApiService::class.java)
 
-        //Esto hace la consulta
+        val fakeDao = object : PokemonDao {
+            override fun insertPokemon(pokemon: PokemonResponse) {
+            }
+        }
+
+        repository = PokemonRepository(apiService, fakeDao)
+
         buscarPokemon("bulbasaur")
 
         buttonSearch.setOnClickListener {
@@ -66,35 +60,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun buscarPokemon(nombre: String) {
-        val call: Call<PokemonResponse> = apiService.getPokemon(nombre)
-
-        call.enqueue(object : Callback<PokemonResponse> {
-            override fun onResponse(
-                call: Call<PokemonResponse>,
-                response: Response<PokemonResponse>
-            ) {
-                if (response.isSuccessful) {
-                    val pokemon = response.body()
-                    if (pokemon != null) {
-                        pokemonAdapter.setPokemon(pokemon)
-                    }
-                } else {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Pokémon no encontrado",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-
-            override fun onFailure(call: Call<PokemonResponse>, t: Throwable) {
+        repository.getPokemon(nombre).observe(this) { pokemon ->
+            if (pokemon != null) {
+                pokemonAdapter.setPokemon(pokemon)
+            } else {
                 Toast.makeText(
-                    this@MainActivity,
-                    "Error de conexión: ${t.message}",
+                    this,
+                    "Pokémon no encontrado o error de conexión",
                     Toast.LENGTH_LONG
                 ).show()
             }
-        })
+        }
     }
 }

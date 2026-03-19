@@ -36,8 +36,8 @@ class PokemonAdapter : RecyclerView.Adapter<PokemonAdapter.PokemonViewHolder>() 
     override fun onBindViewHolder(holder: PokemonViewHolder, position: Int) {
         pokemon?.let {
             holder.textViewName.text = it.name.replaceFirstChar { c -> c.uppercase() }
-            holder.textViewHeight.text = "Altura: ${it.height}"
-            holder.textViewWeight.text = "Peso: ${it.weight}"
+            holder.textViewHeight.text = "Altura: ${it.height * 10} cm"
+            holder.textViewWeight.text = "Peso: ${it.weight / 10.0} kg"
 
             //Descarga y muestra la imagen automáticamente
             Picasso.get()
